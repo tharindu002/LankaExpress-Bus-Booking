@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm --prefix Admin run build && node -e \"const fs=require('fs'); fs.cpSync('Admin/dist', 'dist', {recursive: true});\"",
-  "outputDirectory": "dist",
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]

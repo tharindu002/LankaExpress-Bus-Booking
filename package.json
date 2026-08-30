@@ -3,14 +3,19 @@
   "version": "1.0.0",
   "description": "Lanka Expressway Bus Booking System",
   "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "Admin"
+  ],
   "scripts": {
     "dev": "npm --prefix backend run dev",
     "dev:all": "npm --prefix backend run dev & npm --prefix frontend run dev & npm --prefix Admin run dev",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:admin": "npm --prefix Admin run dev",
-    "build:frontend": "npm --prefix frontend run build",
-    "build:admin": "npm --prefix Admin run build",
-    "build": "npm --prefix frontend run build && node -e \"const fs=require('fs'); fs.cpSync('frontend/dist', 'dist', {recursive: true});\""
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "build:admin": "cd Admin && npm install && npm run build",
+    "build": "cd frontend && npm install && npm run build"
   }
 }
