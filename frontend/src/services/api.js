@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 // API Client pointing to backend Express server
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 const client = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 3000,
+  timeout: 10000,
 });
 
 const DB_KEY = 'lanka_expressway_verified_db_v2';

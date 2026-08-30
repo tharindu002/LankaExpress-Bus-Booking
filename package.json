@@ -8,6 +8,9 @@
     "dev:all": "npm --prefix backend run dev & npm --prefix frontend run dev & npm --prefix Admin run dev",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
-    "dev:admin": "npm --prefix Admin run dev"
+    "dev:admin": "npm --prefix Admin run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "build:admin": "npm --prefix Admin run build",
+    "build": "npm --prefix frontend run build"
   }
 }

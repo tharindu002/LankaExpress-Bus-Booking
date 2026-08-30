@@ -24,6 +24,7 @@ import { AdminProfile } from './pages/AdminProfile';
 import { ConductorManagement } from './pages/ConductorManagement';
 import { BoardingMonitoring } from './pages/BoardingMonitoring';
 import { AdminAccessManagement } from './pages/AdminAccessManagement';
+import { AuditLogPage } from './pages/AuditLogPage';
 import { ConductorDashboard } from './pages/conductor/ConductorDashboard';
 import { ConductorSchedules } from './pages/conductor/ConductorSchedules';
 import { ConductorBookings } from './pages/conductor/ConductorBookings';

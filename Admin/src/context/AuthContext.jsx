@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-axios.defaults.baseURL = 'http://localhost:5000';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+axios.defaults.baseURL = BACKEND_URL;
 
 // Synchronously set initial authorization header if token exists in localStorage
 const savedTokenOnInit = localStorage.getItem('lanka_admin_token');
