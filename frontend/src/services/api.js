@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // API Client pointing to backend Express server
 const getBaseUrl = () => {
-  const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL;
+  const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL || import.meta.env.BACKEND_URL;
   if (!envUrl) return 'http://localhost:5000/api';
   const cleanUrl = envUrl.trim().replace(/\/+$/, '');
   return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
