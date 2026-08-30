@@ -1,0 +1,13 @@
+{
+  "name": "lanka-expressway",
+  "version": "1.0.0",
+  "description": "Lanka Expressway Bus Booking System",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix backend run dev",
+    "dev:all": "npm --prefix backend run dev & npm --prefix frontend run dev & npm --prefix Admin run dev",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:admin": "npm --prefix Admin run dev"
+  }
+}

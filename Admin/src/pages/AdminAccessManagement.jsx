@@ -53,7 +53,7 @@ export function AdminAccessManagement() {
     } catch (err) {
       console.error('Failed to fetch admin accounts:', err);
       setError('Failed to load admin user list.');
-    } fontally {
+    } finally {
       setLoading(false);
     }
   };

@@ -48,7 +48,7 @@ export default function BookingSuccess() {
 
       {/* Stylized Bus E-Ticket */}
       <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-3xl shadow-xl overflow-hidden print:shadow-none print:border-slate-300 print:rounded-none">
-        
+
         {/* Ticket Header */}
         <div className="bg-gradient-to-r from-slate-800 to-slate-900 dark:from-slate-950 dark:to-slate-900 text-white p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="space-y-1">
@@ -63,7 +63,7 @@ export default function BookingSuccess() {
 
         {/* Ticket Body */}
         <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-          
+
           {/* Journey details */}
           <div className="md:col-span-2 space-y-6">
             <div className="grid grid-cols-2 gap-4">
@@ -106,7 +106,7 @@ export default function BookingSuccess() {
                 </span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-400 font-bold uppercase block">Travel Date</span>
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Travel Date </span>
                 <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">
                   {currentBooking.bookingDate}
                 </span>
@@ -116,7 +116,7 @@ export default function BookingSuccess() {
 
           {/* QR Code and Pricing (Simulated Ticket stub) */}
           <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-dark-border/40 space-y-4">
-            
+
             {/* Visual Simulated QR code */}
             <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex items-center justify-center w-36 h-36">
               <svg viewBox="0 0 100 100" className="w-full h-full text-slate-950">
@@ -127,7 +127,7 @@ export default function BookingSuccess() {
                 <rect x="79" y="9" width="12" height="12" fill="white" />
                 <rect x="5" y="75" width="20" height="20" fill="currentColor" />
                 <rect x="9" y="79" width="12" height="12" fill="white" />
-                
+
                 <rect x="35" y="15" width="10" height="10" fill="currentColor" />
                 <rect x="55" y="20" width="15" height="5" fill="currentColor" />
                 <rect x="40" y="35" width="25" height="10" fill="currentColor" />
