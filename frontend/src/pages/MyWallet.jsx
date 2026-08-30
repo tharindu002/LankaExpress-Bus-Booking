@@ -118,6 +118,37 @@ export default function MyWallet() {
     }
   };
 
+  // Instant PayHere Sandbox Top-Up (Bypasses Domain Restrictions for Demos)
+  const handleInstantSandboxTopup = async () => {
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount < 100) {
+      setAlertMsg({ type: 'error', text: 'Minimum top-up amount is LKR 100.00' });
+      return;
+    }
+
+    setProcessing(true);
+    setAlertMsg(null);
+
+    try {
+      const res = await api.topupWallet(numAmount);
+      if (!res.success || !res.payHereData) {
+        throw new Error(res.message || 'Failed to initialize top-up');
+      }
+
+      const orderId = res.payHereData.order_id;
+      const verifyRes = await api.verifySandboxTopup(orderId);
+      if (verifyRes.success) {
+        setAlertMsg({ type: 'success', text: `✅ Instant PayHere Sandbox Top-Up Successful! LKR ${numAmount.toFixed(2)} added to your Digital Wallet.` });
+        setTopupModalOpen(false);
+        await fetchWalletData();
+      }
+    } catch (err) {
+      setAlertMsg({ type: 'error', text: err.message });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Header Banner */}
@@ -385,7 +416,7 @@ export default function MyWallet() {
                 </p>
               </div>
 
-              <div className="pt-2 flex flex-col gap-2">
+              <div className="pt-2 flex flex-col gap-2.5">
                 <button
                   type="submit"
                   disabled={processing}
@@ -402,6 +433,16 @@ export default function MyWallet() {
                       <span>Proceed to PayHere Checkout</span>
                     </>
                   )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleInstantSandboxTopup}
+                  disabled={processing}
+                  className="w-full py-3.5 bg-emerald-950 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 font-bold rounded-2xl text-sm transition flex items-center justify-center space-x-2 shadow-md"
+                >
+                  <FaCheckCircle className="text-emerald-400" />
+                  <span>Simulate Instant PayHere Top-Up (Sandbox Mode)</span>
                 </button>
 
                 {sandboxOrderId && (
