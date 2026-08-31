@@ -1546,7 +1546,7 @@ export const api = {
         email: email,
         role: 'user',
         phone: '+94 77 123 4567',
-        walletBalance: 5000,
+        walletBalance: 0,
         token: 'local_demo_token_' + Date.now(),
       };
     }
@@ -1567,7 +1567,7 @@ export const api = {
         email: userData.email,
         role: 'user',
         phone: userData.phone || '+94 77 000 0000',
-        walletBalance: 5000,
+        walletBalance: 0,
         token: 'local_demo_token_' + Date.now(),
       };
       return localUser;
