@@ -29,60 +29,69 @@ export function ConductorQRScanner() {
     setBoardSuccessMsg('');
     setScanning(true);
 
-    try {
-      // 1. Explicitly request camera permissions from browser to trigger permission prompt
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-          stream.getTracks().forEach((track) => track.stop());
-        } catch (permErr) {
-          console.warn('getUserMedia permission warning:', permErr);
-        }
-      }
-
-      // 2. Stop any previous instance
-      if (html5QrCodeRef.current) {
-        try {
-          await html5QrCodeRef.current.stop();
-        } catch (e) {}
-      }
-
-      const html5QrCode = new Html5Qrcode('qr-reader-container');
-      html5QrCodeRef.current = html5QrCode;
-
-      const config = {
-        fps: 10,
-        qrbox: (viewfinderWidth, viewfinderHeight) => {
-          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          const edgeSize = Math.max(180, Math.floor(minEdge * 0.75));
-          return { width: edgeSize, height: edgeSize };
-        },
-      };
-
-      const onScanSuccess = (decodedText) => {
-        stopCamera();
-        handleVerifyTicket(decodedText);
-      };
-
+    setTimeout(async () => {
       try {
-        await html5QrCode.start({ facingMode: 'environment' }, config, onScanSuccess, () => {});
-      } catch (err1) {
+        if (html5QrCodeRef.current) {
+          try {
+            await html5QrCodeRef.current.stop();
+          } catch (e) {}
+        }
+
+        const html5QrCode = new Html5Qrcode('qr-reader-container');
+        html5QrCodeRef.current = html5QrCode;
+
+        const config = {
+          fps: 15,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const edgeSize = Math.max(200, Math.floor(minEdge * 0.8));
+            return { width: edgeSize, height: edgeSize };
+          },
+        };
+
+        const onScanSuccess = (decodedText) => {
+          try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+          } catch (e) {}
+
+          if (navigator.vibrate) {
+            navigator.vibrate(100);
+          }
+
+          stopCamera();
+          handleVerifyTicket(decodedText);
+        };
+
+        // Strictly search for Back / Rear camera device (NO Front Camera fallback)
         try {
-          await html5QrCode.start({ facingMode: 'user' }, config, onScanSuccess, () => {});
-        } catch (err2) {
           const devices = await Html5Qrcode.getCameras();
           if (devices && devices.length > 0) {
-            await html5QrCode.start(devices[devices.length - 1].id, config, onScanSuccess, () => {});
+            const backCam = devices.find(d => 
+              d.label.toLowerCase().includes('back') || 
+              d.label.toLowerCase().includes('rear') || 
+              d.label.toLowerCase().includes('environment') ||
+              d.label.toLowerCase().includes('0')
+            ) || devices[devices.length - 1];
+
+            await html5QrCode.start(backCam.id, config, onScanSuccess, () => {});
           } else {
-            throw new Error('No camera hardware found');
+            await html5QrCode.start({ facingMode: { exact: "environment" } }, config, onScanSuccess, () => {});
           }
+        } catch (camErr) {
+          await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, () => {});
         }
+      } catch (err) {
+        console.error('Back camera start error:', err);
+        setScanning(false);
+        setScannerError('Back camera access denied or camera not found on this device. Please allow camera permissions or enter the booking reference manually below.');
       }
-    } catch (err) {
-      console.error('Camera start error:', err);
-      setScanning(false);
-      setScannerError('Camera access denied or camera not found. Please allow camera permissions in your browser or select/upload a QR ticket image below.');
-    }
+    }, 100);
   };
 
   const stopCamera = async () => {
