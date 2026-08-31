@@ -1,6 +1,18 @@
 import axios from 'axios';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const getBackendUrl = () => {
+  const envUrl =
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_BACKEND_URL ||
+    'https://lankaexpress-bus-booking-backend.onrender.com';
+  let cleanUrl = envUrl.trim().replace(/\/+$/, '');
+  if (cleanUrl.endsWith('/api')) {
+    cleanUrl = cleanUrl.slice(0, -4);
+  }
+  return cleanUrl;
+};
+
+const BACKEND_URL = getBackendUrl();
 axios.defaults.baseURL = BACKEND_URL;
 
 export const api = {

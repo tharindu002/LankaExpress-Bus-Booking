@@ -22,7 +22,19 @@ export function ConductorLayout({ children, title = 'Conductor Workspace' }) {
   useEffect(() => {
     if (!user) return;
 
-    const socket = io('http://localhost:5000', {
+    const getSocketUrl = () => {
+      const envUrl =
+        import.meta.env.VITE_API_BASE_URL ||
+        import.meta.env.VITE_BACKEND_URL ||
+        'https://lankaexpress-bus-booking-backend.onrender.com';
+      let cleanUrl = envUrl.trim().replace(/\/+$/, '');
+      if (cleanUrl.endsWith('/api')) {
+        cleanUrl = cleanUrl.slice(0, -4);
+      }
+      return cleanUrl;
+    };
+
+    const socket = io(getSocketUrl(), {
       transports: ['websocket', 'polling'],
     });
 
