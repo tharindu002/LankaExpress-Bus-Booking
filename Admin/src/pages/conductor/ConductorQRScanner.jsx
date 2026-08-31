@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { QrCode, CheckCircle2, XCircle, UserCheck, Search, ShieldCheck, Bus, RefreshCw, AlertCircle, Upload } from 'lucide-react';
+import { QrCode, CheckCircle2, XCircle, UserCheck, Search, ShieldCheck, Bus, RefreshCw, AlertCircle, Upload, Camera } from 'lucide-react';
 import { api } from '../../services/api';
 import { ConductorLayout } from '../../components/ConductorLayout';
 
@@ -29,21 +29,9 @@ export function ConductorQRScanner() {
     setBoardSuccessMsg('');
     setScanning(true);
 
+    // Short delay to ensure #qr-viewfinder is visible in DOM
     setTimeout(async () => {
       try {
-        // 1. Explicitly request camera permissions from browser to trigger permission prompt and unlock labels
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: 'environment' },
-            });
-            stream.getTracks().forEach((track) => track.stop());
-          } catch (permErr) {
-            console.warn('getUserMedia permission check:', permErr);
-          }
-        }
-
-        // 2. Stop any existing instance
         if (html5QrCodeRef.current) {
           try {
             if (html5QrCodeRef.current.isScanning) {
@@ -53,14 +41,17 @@ export function ConductorQRScanner() {
           } catch (e) {}
         }
 
-        const html5QrCode = new Html5Qrcode('qr-reader-container');
+        const container = document.getElementById('qr-viewfinder');
+        if (!container) return;
+
+        const html5QrCode = new Html5Qrcode('qr-viewfinder');
         html5QrCodeRef.current = html5QrCode;
 
         const config = {
           fps: 15,
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const edgeSize = Math.max(180, Math.floor(minEdge * 0.75));
+            const edgeSize = Math.max(180, Math.floor(minEdge * 0.8));
             return { width: edgeSize, height: edgeSize };
           },
         };
@@ -84,31 +75,27 @@ export function ConductorQRScanner() {
           handleVerifyTicket(decodedText);
         };
 
-        // Directly start back/environment camera
+        // Try environment (rear) camera first, fallback to user facing if environment fails
         try {
           await html5QrCode.start({ facingMode: 'environment' }, config, onScanSuccess, () => {});
-        } catch (camErr) {
-          console.warn('facingMode environment direct start failed, checking device list:', camErr);
-          const devices = await Html5Qrcode.getCameras();
-          if (devices && devices.length > 0) {
-            const backCam = devices.find((d) =>
-              d.label.toLowerCase().includes('back') ||
-              d.label.toLowerCase().includes('rear') ||
-              d.label.toLowerCase().includes('environment') ||
-              d.label.toLowerCase().includes('0')
-            ) || devices[0];
-
-            await html5QrCode.start(backCam.id, config, onScanSuccess, () => {});
-          } else {
-            throw new Error('No camera hardware found');
+        } catch (err1) {
+          try {
+            await html5QrCode.start({ facingMode: 'user' }, config, onScanSuccess, () => {});
+          } catch (err2) {
+            const devices = await Html5Qrcode.getCameras();
+            if (devices && devices.length > 0) {
+              await html5QrCode.start(devices[devices.length - 1].id, config, onScanSuccess, () => {});
+            } else {
+              throw new Error('No camera hardware found');
+            }
           }
         }
       } catch (err) {
-        console.error('Back camera start error:', err);
+        console.error('Camera start error:', err);
         setScanning(false);
-        setScannerError('Camera access denied or blocked by browser. Please tap "Allow" on your browser permission prompt or check browser site settings.');
+        setScannerError('Camera access denied or blocked by browser. Please tap "Allow" on browser permissions or select a QR photo below.');
       }
-    }, 150);
+    }, 100);
   };
 
   const stopCamera = async () => {
@@ -117,6 +104,7 @@ export function ConductorQRScanner() {
         if (html5QrCodeRef.current.isScanning) {
           await html5QrCodeRef.current.stop();
         }
+        html5QrCodeRef.current.clear();
       } catch (err) {
         console.error('Error stopping camera:', err);
       }
@@ -133,12 +121,12 @@ export function ConductorQRScanner() {
     setLoading(true);
 
     try {
-      const html5QrCode = new Html5Qrcode('qr-reader-container');
+      const html5QrCode = new Html5Qrcode('qr-viewfinder');
       const decodedText = await html5QrCode.scanFile(file, true);
       handleVerifyTicket(decodedText);
     } catch (err) {
       console.error('File QR decode error:', err);
-      setScannerError('Could not decode QR code from the selected image. Please try another image or enter booking reference manually.');
+      setScannerError('Could not decode QR code from the selected image. Please try another photo or enter booking reference manually.');
     } finally {
       setLoading(false);
     }
@@ -168,7 +156,7 @@ export function ConductorQRScanner() {
   };
 
   const handleBoardPassenger = async () => {
-    if (!scanResult || !scanResult.bookingId && !scanResult.bookingRef) return;
+    if (!scanResult || (!scanResult.bookingId && !scanResult.bookingRef)) return;
 
     setBoardLoading(true);
     setBoardSuccessMsg('');
@@ -206,10 +194,14 @@ export function ConductorQRScanner() {
 
         {/* Camera Container */}
         <div className="glass-card p-4 text-center space-y-4">
-          <div
-            id="qr-reader-container"
-            className="w-full min-h-[220px] max-h-[300px] bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center relative"
-          >
+          <div className="w-full min-h-[220px] bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center relative">
+            {/* Dedicated Html5Qrcode viewfinder element - React NEVER mutates this inner DOM */}
+            <div
+              id="qr-viewfinder"
+              className={`w-full h-full min-h-[220px] ${scanning ? 'block' : 'hidden'}`}
+            />
+
+            {/* Inactive State Display */}
             {!scanning && (
               <div className="p-6 space-y-3">
                 <QrCode className="w-12 h-12 text-slate-600 mx-auto" />
@@ -246,7 +238,7 @@ export function ConductorQRScanner() {
           {scanning && (
             <button
               onClick={stopCamera}
-              className="px-4 py-2 bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-xs font-bold rounded-xl border border-rose-500/30"
+              className="px-4 py-2 bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-xs font-bold rounded-xl border border-rose-500/30 cursor-pointer"
             >
               Stop Camera
             </button>
@@ -263,129 +255,125 @@ export function ConductorQRScanner() {
         {/* Manual Input Fallback */}
         <div className="glass-card p-5 space-y-3">
           <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-            Or Enter Ticket Reference / QR Code Data
+            Manual Booking Reference Check
           </label>
           <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="e.g. SLB-2026-X8F9"
-              value={manualInput}
-              onChange={(e) => setManualInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleVerifyTicket()}
-              className="input-control py-3 text-xs uppercase font-mono tracking-wider w-full"
-            />
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="e.g. SLB-2026-X8F9"
+                value={manualInput}
+                onChange={(e) => setManualInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleVerifyTicket()}
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 font-mono font-bold"
+              />
+            </div>
             <button
               onClick={() => handleVerifyTicket()}
-              disabled={loading}
-              className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow shrink-0 flex items-center space-x-1.5 transition cursor-pointer"
+              disabled={loading || !manualInput.trim()}
+              className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-slate-950 text-xs font-black rounded-xl transition flex items-center space-x-1 cursor-pointer"
             >
-              <Search className="w-4 h-4" />
-              <span>{loading ? 'Verifying...' : 'Verify'}</span>
+              {loading ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Verify Ticket</span>
+                </>
+              )}
             </button>
           </div>
         </div>
 
-        {/* Success Message Banner after Boarding */}
-        {boardSuccessMsg && (
-          <div className="p-4 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-xs font-bold rounded-2xl flex items-center gap-3 animate-fade-in shadow-xl">
-            <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
-            <div>
-              <div className="font-extrabold text-sm text-emerald-200">BOARDED SUCCESSFULLY!</div>
-              <div>{boardSuccessMsg}</div>
-            </div>
-          </div>
-        )}
-
-        {/* Verification Result Card */}
+        {/* Verification Result Section */}
         {scanResult && (
           <div
-            className={`glass-card p-6 space-y-5 border-2 animate-fade-in ${
+            className={`glass-card p-6 border-2 space-y-4 animate-fade-in ${
               scanResult.valid
                 ? 'border-emerald-500/50 bg-emerald-950/20'
                 : 'border-rose-500/50 bg-rose-950/20'
             }`}
           >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <div className="flex items-center space-x-3">
-                {scanResult.valid ? (
-                  <CheckCircle2 className="w-8 h-8 text-emerald-400" />
-                ) : (
-                  <XCircle className="w-8 h-8 text-rose-500" />
-                )}
-                <div>
-                  <h3
-                    className={`text-lg font-black tracking-wide ${
-                      scanResult.valid ? 'text-emerald-400' : 'text-rose-400'
-                    }`}
-                  >
-                    {scanResult.valid ? 'VALID TICKET' : 'INVALID TICKET'}
-                  </h3>
-                  <p className="text-xs text-slate-300 font-medium">{scanResult.reason || scanResult.message}</p>
-                </div>
+            <div className="flex items-center space-x-3 border-b border-slate-800 pb-3">
+              {scanResult.valid ? (
+                <CheckCircle2 className="w-8 h-8 text-emerald-400 shrink-0" />
+              ) : (
+                <XCircle className="w-8 h-8 text-rose-400 shrink-0" />
+              )}
+              <div>
+                <h3
+                  className={`text-base font-black ${
+                    scanResult.valid ? 'text-emerald-400' : 'text-rose-400'
+                  }`}
+                >
+                  {scanResult.valid ? 'VALID TICKET - PAYMENT VERIFIED' : 'INVALID OR UNPAID TICKET'}
+                </h3>
+                <p className="text-xs text-slate-300 font-medium">
+                  {scanResult.reason || scanResult.message || 'Ticket validation completed.'}
+                </p>
               </div>
-
-              <span className="font-mono font-extrabold text-slate-200 text-sm">
-                {scanResult.bookingRef}
-              </span>
             </div>
 
-            {/* Ticket details if valid or partially available */}
-            {scanResult.passengerName && (
-              <div className="space-y-4 text-xs">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Passenger Name</span>
-                    <strong className="text-slate-100 text-sm">{scanResult.passengerName}</strong>
+            {scanResult.valid && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold block">Booking Ref</span>
+                    <strong className="font-mono text-emerald-400 text-sm block">{scanResult.bookingRef}</strong>
                   </div>
 
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Reserved Seats</span>
-                    <div className="flex flex-wrap gap-1 mt-0.5">
-                      {scanResult.seats?.map((seat) => (
-                        <span key={seat} className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 font-extrabold rounded">
-                          {seat}
-                        </span>
-                      ))}
-                    </div>
+                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold block">Passenger Name</span>
+                    <strong className="text-slate-200 text-sm block">{scanResult.passengerName}</strong>
                   </div>
 
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Phone / NIC</span>
-                    <span className="text-slate-200">{scanResult.passengerPhone}</span>
+                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold block">Reserved Seats</span>
+                    <strong className="text-amber-400 text-sm block">
+                      {scanResult.seats ? scanResult.seats.join(', ') : 'N/A'}
+                    </strong>
                   </div>
 
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Payment Status</span>
-                    <span className="text-emerald-400 font-bold uppercase">{scanResult.paymentStatus || 'PAID'}</span>
+                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold block">Phone / NIC</span>
+                    <span className="text-slate-300 font-semibold block">{scanResult.passengerPhone}</span>
+                  </div>
+
+                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold block">Payment Status</span>
+                    <span className="text-emerald-400 font-bold block uppercase">{scanResult.paymentStatus || 'PAID'}</span>
+                  </div>
+
+                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold block">Boarding Status</span>
+                    <span className={`font-bold block uppercase ${scanResult.boardingStatus === 'Boarded' ? 'text-teal-400' : 'text-amber-400'}`}>
+                      {scanResult.boardingStatus || 'Pending'}
+                    </span>
                   </div>
                 </div>
 
-                {scanResult.schedule && (
-                  <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800 space-y-1">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Assigned Route</span>
-                    <strong className="text-slate-100 block">{scanResult.schedule.routeName}</strong>
-                    <div className="text-[11px] text-slate-400">
-                      Bus: {scanResult.schedule.busName} ({scanResult.schedule.busRegNo}) • Dep: {scanResult.schedule.departureTime}
-                    </div>
+                {boardSuccessMsg && (
+                  <div className="p-3 bg-teal-950/80 border border-teal-500/50 text-teal-300 text-xs font-bold rounded-xl text-center">
+                    {boardSuccessMsg}
                   </div>
                 )}
 
-                {/* Mark as Boarded Action Button */}
-                {scanResult.valid && scanResult.boardingStatus !== 'Boarded' && (
+                {scanResult.boardingStatus !== 'Boarded' && (
                   <button
                     onClick={handleBoardPassenger}
                     disabled={boardLoading}
-                    className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl transition cursor-pointer flex items-center justify-center space-x-2"
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition flex items-center justify-center space-x-2 cursor-pointer"
                   >
-                    <UserCheck className="w-5 h-5" />
-                    <span>{boardLoading ? 'Processing...' : 'MARK AS BOARDED'}</span>
+                    {boardLoading ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <UserCheck className="w-4 h-4" />
+                        <span>MARK AS BOARDED (PASSENGER CHECK-IN)</span>
+                      </>
+                    )}
                   </button>
-                )}
-
-                {scanResult.boardingStatus === 'Boarded' && (
-                  <div className="p-3 bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 text-center font-extrabold rounded-xl">
-                    PASSENGER IS ALREADY BOARDED
-                  </div>
                 )}
               </div>
             )}
