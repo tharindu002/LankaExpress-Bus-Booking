@@ -24,6 +24,7 @@ export function ConductorLayout({ children, title = 'Conductor Workspace' }) {
 
     const getSocketUrl = () => {
       const envUrl =
+        import.meta.env.VITE_API_URL ||
         import.meta.env.VITE_API_BASE_URL ||
         import.meta.env.VITE_BACKEND_URL ||
         'https://lankaexpress-bus-booking-backend.onrender.com';
