@@ -2,12 +2,28 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
 const getBackendUrl = () => {
-  const envUrl =
+  let envUrl = (
     import.meta.env.VITE_API_URL ||
     import.meta.env.VITE_API_BASE_URL ||
     import.meta.env.VITE_BACKEND_URL ||
-    'https://lankaexpress-bus-booking-backend.onrender.com';
-  let cleanUrl = envUrl.trim().replace(/\/+$/, '');
+    ''
+  ).trim();
+
+  const isLocalHost =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  if (!isLocalHost) {
+    if (!envUrl || envUrl.includes('localhost') || envUrl.includes('127.0.0.1')) {
+      envUrl = 'https://lankaexpress-bus-booking-backend.onrender.com';
+    }
+  } else {
+    if (!envUrl) {
+      envUrl = 'http://localhost:5000';
+    }
+  }
+
+  let cleanUrl = envUrl.replace(/\/+$/, '');
   if (cleanUrl.endsWith('/api')) {
     cleanUrl = cleanUrl.slice(0, -4);
   }

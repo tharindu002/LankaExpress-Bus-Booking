@@ -2,13 +2,31 @@ import axios from 'axios';
 
 // API Client pointing to backend Express server
 const getBaseUrl = () => {
-  const envUrl =
+  let envUrl = (
     import.meta.env.VITE_API_URL ||
     import.meta.env.VITE_API_BASE_URL ||
     import.meta.env.VITE_BACKEND_URL ||
     import.meta.env.BACKEND_URL ||
-    'https://lankaexpress-bus-booking-backend.onrender.com';
-  const cleanUrl = envUrl.trim().replace(/\/+$/, '');
+    ''
+  ).trim();
+
+  const isLocalHost =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  if (!isLocalHost) {
+    // In production / Vercel deployment: NEVER allow localhost or empty URL
+    if (!envUrl || envUrl.includes('localhost') || envUrl.includes('127.0.0.1')) {
+      envUrl = 'https://lankaexpress-bus-booking-backend.onrender.com';
+    }
+  } else {
+    // In local development environment: default to local backend if not set
+    if (!envUrl) {
+      envUrl = 'http://localhost:5000';
+    }
+  }
+
+  const cleanUrl = envUrl.replace(/\/+$/, '');
   return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
 };
 
