@@ -31,9 +31,25 @@ export function ConductorQRScanner() {
 
     setTimeout(async () => {
       try {
+        // 1. Explicitly request camera permissions from browser to trigger permission prompt and unlock labels
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: 'environment' },
+            });
+            stream.getTracks().forEach((track) => track.stop());
+          } catch (permErr) {
+            console.warn('getUserMedia permission check:', permErr);
+          }
+        }
+
+        // 2. Stop any existing instance
         if (html5QrCodeRef.current) {
           try {
-            await html5QrCodeRef.current.stop();
+            if (html5QrCodeRef.current.isScanning) {
+              await html5QrCodeRef.current.stop();
+            }
+            html5QrCodeRef.current.clear();
           } catch (e) {}
         }
 
@@ -44,7 +60,7 @@ export function ConductorQRScanner() {
           fps: 15,
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const edgeSize = Math.max(200, Math.floor(minEdge * 0.8));
+            const edgeSize = Math.max(180, Math.floor(minEdge * 0.75));
             return { width: edgeSize, height: edgeSize };
           },
         };
@@ -68,30 +84,31 @@ export function ConductorQRScanner() {
           handleVerifyTicket(decodedText);
         };
 
-        // Strictly search for Back / Rear camera device (NO Front Camera fallback)
+        // Directly start back/environment camera
         try {
+          await html5QrCode.start({ facingMode: 'environment' }, config, onScanSuccess, () => {});
+        } catch (camErr) {
+          console.warn('facingMode environment direct start failed, checking device list:', camErr);
           const devices = await Html5Qrcode.getCameras();
           if (devices && devices.length > 0) {
-            const backCam = devices.find(d => 
-              d.label.toLowerCase().includes('back') || 
-              d.label.toLowerCase().includes('rear') || 
+            const backCam = devices.find((d) =>
+              d.label.toLowerCase().includes('back') ||
+              d.label.toLowerCase().includes('rear') ||
               d.label.toLowerCase().includes('environment') ||
               d.label.toLowerCase().includes('0')
-            ) || devices[devices.length - 1];
+            ) || devices[0];
 
             await html5QrCode.start(backCam.id, config, onScanSuccess, () => {});
           } else {
-            await html5QrCode.start({ facingMode: { exact: "environment" } }, config, onScanSuccess, () => {});
+            throw new Error('No camera hardware found');
           }
-        } catch (camErr) {
-          await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, () => {});
         }
       } catch (err) {
         console.error('Back camera start error:', err);
         setScanning(false);
-        setScannerError('Back camera access denied or camera not found on this device. Please allow camera permissions or enter the booking reference manually below.');
+        setScannerError('Camera access denied or blocked by browser. Please tap "Allow" on your browser permission prompt or check browser site settings.');
       }
-    }, 100);
+    }, 150);
   };
 
   const stopCamera = async () => {
