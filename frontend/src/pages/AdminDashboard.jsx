@@ -14,7 +14,8 @@ export default function AdminDashboard() {
 
   // Route security guard
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
+    const role = user?.role?.toLowerCase();
+    if (!user || (role !== 'admin' && role !== 'superadmin')) {
       navigate('/login');
     }
   }, [user]);
@@ -101,7 +102,8 @@ export default function AdminDashboard() {
   });
 
   useEffect(() => {
-    if (user?.role === 'admin') {
+    const role = user?.role?.toLowerCase();
+    if (role === 'admin' || role === 'superadmin') {
       refreshData();
     }
   }, [user, activeTab]);
@@ -344,7 +346,8 @@ export default function AdminDashboard() {
     }
   };
 
-  if (!user || user.role !== 'admin') return null;
+  const userRole = user?.role?.toLowerCase();
+  if (!user || (userRole !== 'admin' && userRole !== 'superadmin')) return null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8">
