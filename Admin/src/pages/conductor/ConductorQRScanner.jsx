@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import { QrCode, CheckCircle2, XCircle, UserCheck, Search, ShieldCheck, Bus, RefreshCw, AlertCircle } from 'lucide-react';
 import { api } from '../../services/api';
 import { ConductorLayout } from '../../components/ConductorLayout';
@@ -22,55 +22,38 @@ export function ConductorQRScanner() {
     };
   }, []);
 
-  const startCamera = async () => {
+  const startCamera = () => {
     setScannerError('');
     setScanResult(null);
     setBoardSuccessMsg('');
     setScanning(true);
 
-    setTimeout(async () => {
+    setTimeout(() => {
       try {
         if (html5QrCodeRef.current) {
           try {
-            await html5QrCodeRef.current.stop();
+            html5QrCodeRef.current.clear();
           } catch (e) {}
         }
 
-        const container = document.getElementById('qr-reader-container');
-        if (!container) return;
+        const scanner = new Html5QrcodeScanner('qr-reader-container', {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          rememberLastUsedCamera: true,
+          aspectRatio: 1.0,
+        });
 
-        const html5QrCode = new Html5Qrcode('qr-reader-container');
-        html5QrCodeRef.current = html5QrCode;
+        html5QrCodeRef.current = scanner;
 
-        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-        try {
-          await html5QrCode.start(
-            { facingMode: 'environment' },
-            config,
-            (decodedText) => {
-              stopCamera();
-              handleVerifyTicket(decodedText);
-            },
-            () => {}
-          );
-        } catch (camErr) {
-          const devices = await Html5Qrcode.getCameras();
-          if (devices && devices.length > 0) {
-            const cameraId = devices[devices.length - 1].id;
-            await html5QrCode.start(
-              cameraId,
-              config,
-              (decodedText) => {
-                stopCamera();
-                handleVerifyTicket(decodedText);
-              },
-              () => {}
-            );
-          } else {
-            throw new Error('No camera devices found');
+        scanner.render(
+          (decodedText) => {
+            stopCamera();
+            handleVerifyTicket(decodedText);
+          },
+          (error) => {
+            // ignore scan frame errors
           }
-        }
+        );
       } catch (err) {
         console.error('Camera start error:', err);
         setScanning(false);
@@ -79,10 +62,9 @@ export function ConductorQRScanner() {
     }, 150);
   };
 
-  const stopCamera = async () => {
+  const stopCamera = () => {
     if (html5QrCodeRef.current) {
       try {
-        await html5QrCodeRef.current.stop();
         html5QrCodeRef.current.clear();
       } catch (err) {
         console.error('Error stopping camera:', err);
