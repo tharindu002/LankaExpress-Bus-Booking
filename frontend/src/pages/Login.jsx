@@ -27,7 +27,7 @@ export default function Login() {
     try {
       const loggedUser = await login(email, password);
       const userRole = loggedUser.role?.toLowerCase();
-      if (userRole === 'admin' || userRole === 'superadmin') {
+      if (userRole === 'admin' || userRole === 'superadmin' || userRole === 'conductor') {
         navigate('/admin');
       } else {
         navigate(from, { replace: true });
