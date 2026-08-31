@@ -2,35 +2,39 @@ import axios from 'axios';
 
 // API Client pointing to backend Express server
 const getBaseUrl = () => {
-  let envUrl = (
-    import.meta.env.VITE_API_URL ||
-    import.meta.env.VITE_API_BASE_URL ||
-    import.meta.env.VITE_BACKEND_URL ||
-    import.meta.env.BACKEND_URL ||
-    ''
-  ).trim();
-
-  const isLocalHost =
+  const isLocalDev =
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-  if (!isLocalHost) {
-    // In production / Vercel deployment: NEVER allow localhost or empty URL
-    if (!envUrl || envUrl.includes('localhost') || envUrl.includes('127.0.0.1')) {
-      envUrl = 'https://lankaexpress-bus-booking-backend.onrender.com';
-    }
-  } else {
-    // In local development environment: default to local backend if not set
-    if (!envUrl) {
-      envUrl = 'http://localhost:5000';
-    }
+  if (isLocalDev) {
+    const localUrl = (
+      import.meta.env.VITE_API_URL ||
+      import.meta.env.VITE_API_BASE_URL ||
+      import.meta.env.VITE_BACKEND_URL ||
+      'http://localhost:5000'
+    ).trim();
+    const cleanLocal = localUrl.replace(/\/+$/, '');
+    return cleanLocal.endsWith('/api') ? cleanLocal : `${cleanLocal}/api`;
   }
 
-  const cleanUrl = envUrl.replace(/\/+$/, '');
-  return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+  // PRODUCTION / VERCEL: ALWAYS USE RENDER BACKEND
+  let prodUrl = (
+    import.meta.env.VITE_API_URL ||
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_BACKEND_URL ||
+    ''
+  ).trim();
+
+  if (!prodUrl || prodUrl.includes('localhost') || prodUrl.includes('127.0.0.1')) {
+    prodUrl = 'https://lankaexpress-bus-booking-backend.onrender.com';
+  }
+
+  const cleanProd = prodUrl.replace(/\/+$/, '');
+  return cleanProd.endsWith('/api') ? cleanProd : `${cleanProd}/api`;
 };
 
 const API_BASE_URL = getBaseUrl();
+axios.defaults.baseURL = API_BASE_URL;
 const client = axios.create({
   baseURL: API_BASE_URL,
   timeout: 60000, // 60s timeout to allow for Render free tier cold starts

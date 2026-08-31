@@ -2,32 +2,37 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
 const getBackendUrl = () => {
-  let envUrl = (
+  const isLocalDev =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  if (isLocalDev) {
+    const localUrl = (
+      import.meta.env.VITE_API_URL ||
+      import.meta.env.VITE_API_BASE_URL ||
+      import.meta.env.VITE_BACKEND_URL ||
+      'http://localhost:5000'
+    ).trim();
+    let cleanLocal = localUrl.replace(/\/+$/, '');
+    if (cleanLocal.endsWith('/api')) cleanLocal = cleanLocal.slice(0, -4);
+    return cleanLocal;
+  }
+
+  // PRODUCTION / VERCEL: ALWAYS USE RENDER BACKEND
+  let prodUrl = (
     import.meta.env.VITE_API_URL ||
     import.meta.env.VITE_API_BASE_URL ||
     import.meta.env.VITE_BACKEND_URL ||
     ''
   ).trim();
 
-  const isLocalHost =
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-  if (!isLocalHost) {
-    if (!envUrl || envUrl.includes('localhost') || envUrl.includes('127.0.0.1')) {
-      envUrl = 'https://lankaexpress-bus-booking-backend.onrender.com';
-    }
-  } else {
-    if (!envUrl) {
-      envUrl = 'http://localhost:5000';
-    }
+  if (!prodUrl || prodUrl.includes('localhost') || prodUrl.includes('127.0.0.1')) {
+    prodUrl = 'https://lankaexpress-bus-booking-backend.onrender.com';
   }
 
-  let cleanUrl = envUrl.replace(/\/+$/, '');
-  if (cleanUrl.endsWith('/api')) {
-    cleanUrl = cleanUrl.slice(0, -4);
-  }
-  return cleanUrl;
+  let cleanProd = prodUrl.replace(/\/+$/, '');
+  if (cleanProd.endsWith('/api')) cleanProd = cleanProd.slice(0, -4);
+  return cleanProd;
 };
 
 const BACKEND_URL = getBackendUrl();
