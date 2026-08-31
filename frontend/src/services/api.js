@@ -40,6 +40,28 @@ const client = axios.create({
   timeout: 60000, // 60s timeout to allow for Render free tier cold starts
 });
 
+client.interceptors.request.use(
+  (config) => {
+    try {
+      const stored = localStorage.getItem('bus_user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.token) {
+          config.headers.Authorization = `Bearer ${parsed.token}`;
+        }
+        const uId = parsed.userId || parsed.id || parsed._id;
+        if (uId) {
+          config.headers['x-user-id'] = uId;
+        }
+      }
+    } catch (e) {
+      // Ignore storage parse errors
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 const DB_KEY = 'lanka_expressway_verified_db_v2';
 
 // Initial Verified Dataset of Real Sri Lankan Luxury / Super Luxury Operators, Routes & Buses
