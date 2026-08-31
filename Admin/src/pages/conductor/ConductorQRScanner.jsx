@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
-import { QrCode, CheckCircle2, XCircle, UserCheck, Search, ShieldCheck, Bus, RefreshCw, AlertCircle } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
+import { QrCode, CheckCircle2, XCircle, UserCheck, Search, ShieldCheck, Bus, RefreshCw, AlertCircle, Upload } from 'lucide-react';
 import { api } from '../../services/api';
 import { ConductorLayout } from '../../components/ConductorLayout';
 
@@ -15,6 +15,7 @@ export function ConductorQRScanner() {
   const [boardSuccessMsg, setBoardSuccessMsg] = useState('');
 
   const html5QrCodeRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -22,55 +23,99 @@ export function ConductorQRScanner() {
     };
   }, []);
 
-  const startCamera = () => {
+  const startCamera = async () => {
     setScannerError('');
     setScanResult(null);
     setBoardSuccessMsg('');
     setScanning(true);
 
-    setTimeout(() => {
-      try {
-        if (html5QrCodeRef.current) {
-          try {
-            html5QrCodeRef.current.clear();
-          } catch (e) {}
+    try {
+      // 1. Explicitly request camera permissions from browser to trigger permission prompt
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          stream.getTracks().forEach((track) => track.stop());
+        } catch (permErr) {
+          console.warn('getUserMedia permission warning:', permErr);
         }
-
-        const scanner = new Html5QrcodeScanner('qr-reader-container', {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          rememberLastUsedCamera: true,
-          aspectRatio: 1.0,
-        });
-
-        html5QrCodeRef.current = scanner;
-
-        scanner.render(
-          (decodedText) => {
-            stopCamera();
-            handleVerifyTicket(decodedText);
-          },
-          (error) => {
-            // ignore scan frame errors
-          }
-        );
-      } catch (err) {
-        console.error('Camera start error:', err);
-        setScanning(false);
-        setScannerError('Camera access denied or camera not found. Please allow camera permissions or enter the booking reference manually below.');
       }
-    }, 150);
+
+      // 2. Stop any previous instance
+      if (html5QrCodeRef.current) {
+        try {
+          await html5QrCodeRef.current.stop();
+        } catch (e) {}
+      }
+
+      const html5QrCode = new Html5Qrcode('qr-reader-container');
+      html5QrCodeRef.current = html5QrCode;
+
+      const config = {
+        fps: 10,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const edgeSize = Math.max(180, Math.floor(minEdge * 0.75));
+          return { width: edgeSize, height: edgeSize };
+        },
+      };
+
+      const onScanSuccess = (decodedText) => {
+        stopCamera();
+        handleVerifyTicket(decodedText);
+      };
+
+      try {
+        await html5QrCode.start({ facingMode: 'environment' }, config, onScanSuccess, () => {});
+      } catch (err1) {
+        try {
+          await html5QrCode.start({ facingMode: 'user' }, config, onScanSuccess, () => {});
+        } catch (err2) {
+          const devices = await Html5Qrcode.getCameras();
+          if (devices && devices.length > 0) {
+            await html5QrCode.start(devices[devices.length - 1].id, config, onScanSuccess, () => {});
+          } else {
+            throw new Error('No camera hardware found');
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Camera start error:', err);
+      setScanning(false);
+      setScannerError('Camera access denied or camera not found. Please allow camera permissions in your browser or select/upload a QR ticket image below.');
+    }
   };
 
-  const stopCamera = () => {
+  const stopCamera = async () => {
     if (html5QrCodeRef.current) {
       try {
-        html5QrCodeRef.current.clear();
+        if (html5QrCodeRef.current.isScanning) {
+          await html5QrCodeRef.current.stop();
+        }
       } catch (err) {
         console.error('Error stopping camera:', err);
       }
     }
     setScanning(false);
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setScannerError('');
+    setScanResult(null);
+    setLoading(true);
+
+    try {
+      const html5QrCode = new Html5Qrcode('qr-reader-container');
+      const decodedText = await html5QrCode.scanFile(file, true);
+      handleVerifyTicket(decodedText);
+    } catch (err) {
+      console.error('File QR decode error:', err);
+      setScannerError('Could not decode QR code from the selected image. Please try another image or enter booking reference manually.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyTicket = async (refToVerify) => {
@@ -143,12 +188,31 @@ export function ConductorQRScanner() {
               <div className="p-6 space-y-3">
                 <QrCode className="w-12 h-12 text-slate-600 mx-auto" />
                 <p className="text-xs text-slate-400 font-medium">Camera scanner inactive</p>
-                <button
-                  onClick={startCamera}
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl shadow-lg transition cursor-pointer"
-                >
-                  Open Camera Scanner
-                </button>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center pt-1">
+                  <button
+                    onClick={startCamera}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl shadow-lg transition cursor-pointer flex items-center justify-center space-x-1.5"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Open Live Camera</span>
+                  </button>
+
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition cursor-pointer flex items-center justify-center space-x-1.5"
+                  >
+                    <Upload className="w-4 h-4 text-emerald-400" />
+                    <span>Select QR Photo</span>
+                  </button>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </div>
               </div>
             )}
           </div>
