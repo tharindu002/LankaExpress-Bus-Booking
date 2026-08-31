@@ -140,18 +140,22 @@ export default function SeatSelection() {
                         type="button"
                         onClick={() => handleSeatClick(seatId)}
                         disabled={isReserved}
-                        title={`Seat ${seatId} (${is2Plus1 ? 'VIP Single Window' : 'Window/Aisle'})`}
-                        className={`aspect-square p-1 rounded-md text-[11px] font-extrabold transition-all border flex flex-col justify-center items-center cursor-pointer shadow-sm ${
+                        title={isReserved ? `Seat ${seatId} - ALREADY BOOKED` : `Seat ${seatId}`}
+                        className={`aspect-square p-1 rounded-md text-[11px] font-extrabold transition-all border flex flex-col justify-center items-center shadow-sm ${
                           isReserved
-                            ? 'bg-rose-500 text-white border-rose-600 opacity-80 cursor-not-allowed'
+                            ? 'bg-rose-600 text-white border-rose-700 opacity-90 cursor-not-allowed shadow-inner font-black'
                             : isSelected
-                            ? 'bg-blue-600 text-white border-blue-700 pulse-selected font-black scale-105'
+                            ? 'bg-blue-600 text-white border-blue-700 pulse-selected font-black scale-105 cursor-pointer'
                             : is2Plus1
-                            ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 hover:scale-105'
-                            : 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 hover:scale-105'
+                            ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 hover:scale-105 cursor-pointer'
+                            : 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 hover:scale-105 cursor-pointer'
                         }`}
                       >
-                        <FaCrown className="text-[8px] mb-0.5" />
+                        {isReserved ? (
+                          <span className="text-[8px] font-black uppercase text-rose-100 tracking-tighter">BOOKED</span>
+                        ) : (
+                          <FaCrown className="text-[8px] mb-0.5" />
+                        )}
                         <span>{seatId}</span>
                       </button>
                     );
@@ -174,16 +178,20 @@ export default function SeatSelection() {
                         type="button"
                         onClick={() => handleSeatClick(seatId)}
                         disabled={isReserved}
-                        title={`Seat ${seatId}`}
-                        className={`aspect-square p-1 rounded-md text-[11px] font-extrabold transition-all border flex flex-col justify-center items-center cursor-pointer shadow-sm ${
+                        title={isReserved ? `Seat ${seatId} - ALREADY BOOKED` : `Seat ${seatId}`}
+                        className={`aspect-square p-1 rounded-md text-[11px] font-extrabold transition-all border flex flex-col justify-center items-center shadow-sm ${
                           isReserved
-                            ? 'bg-rose-500 text-white border-rose-600 opacity-80 cursor-not-allowed'
+                            ? 'bg-rose-600 text-white border-rose-700 opacity-90 cursor-not-allowed shadow-inner font-black'
                             : isSelected
-                            ? 'bg-blue-600 text-white border-blue-700 pulse-selected font-black scale-105'
-                            : 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 hover:scale-105'
+                            ? 'bg-blue-600 text-white border-blue-700 pulse-selected font-black scale-105 cursor-pointer'
+                            : 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 hover:scale-105 cursor-pointer'
                         }`}
                       >
-                        <FaCrown className="text-[8px] mb-0.5" />
+                        {isReserved ? (
+                          <span className="text-[8px] font-black uppercase text-rose-100 tracking-tighter">BOOKED</span>
+                        ) : (
+                          <FaCrown className="text-[8px] mb-0.5" />
+                        )}
                         <span>{seatId}</span>
                       </button>
                     );
