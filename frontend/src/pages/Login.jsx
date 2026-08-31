@@ -26,44 +26,14 @@ export default function Login() {
 
     try {
       const loggedUser = await login(email, password);
-      if (loggedUser.role === 'admin') {
+      const userRole = loggedUser.role?.toLowerCase();
+      if (userRole === 'admin' || userRole === 'superadmin') {
         navigate('/admin');
       } else {
         navigate(from, { replace: true });
       }
     } catch (err) {
       setError('Invalid email or password.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async (type) => {
-    setLoading(true);
-    setError('');
-    let demoEmail = '';
-    let demoPassword = '';
-
-    if (type === 'admin') {
-      demoEmail = 'admin@highwayexpress.lk';
-      demoPassword = 'admin123';
-    } else {
-      demoEmail = 'customer@gmail.com';
-      demoPassword = 'user123';
-    }
-
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-
-    try {
-      const loggedUser = await login(demoEmail, demoPassword);
-      if (loggedUser.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate(from, { replace: true });
-      }
-    } catch (err) {
-      setError('Failed to login with demo credentials.');
     } finally {
       setLoading(false);
     }
@@ -159,32 +129,6 @@ export default function Login() {
             </button>
           </div>
         </form>
-
-        <div className="mt-6">
-          <div className="relative flex justify-center text-xs uppercase my-4">
-            <span className="bg-white dark:bg-dark-card px-2 text-slate-500 dark:text-slate-400 z-10">Demo Quick Access</span>
-            <div className="absolute top-1/2 left-0 right-0 border-t border-slate-200 dark:border-dark-border"></div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            <button
-              onClick={() => handleDemoLogin('user')}
-              disabled={loading}
-              className="flex items-center justify-center space-x-1.5 py-2 px-3 border border-slate-200 dark:border-dark-border/80 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-dark-bg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <FaUserCheck className="text-teal-500" />
-              <span>Customer Demo</span>
-            </button>
-            <button
-              onClick={() => handleDemoLogin('admin')}
-              disabled={loading}
-              className="flex items-center justify-center space-x-1.5 py-2 px-3 border border-slate-200 dark:border-dark-border/80 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-dark-bg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <FaUserShield className="text-gold-500" />
-              <span>Admin Demo</span>
-            </button>
-          </div>
-        </div>
 
         <div className="text-center text-sm font-semibold text-slate-600 dark:text-slate-400 mt-6">
           Don't have an account?{' '}
