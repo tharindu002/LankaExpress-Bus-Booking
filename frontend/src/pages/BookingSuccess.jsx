@@ -117,28 +117,16 @@ export default function BookingSuccess() {
           {/* QR Code and Pricing (Simulated Ticket stub) */}
           <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-dark-border/40 space-y-4">
 
-            {/* Visual Simulated QR code */}
-            <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex items-center justify-center w-36 h-36">
-              <svg viewBox="0 0 100 100" className="w-full h-full text-slate-950">
-                {/* Simulated Ticket QR */}
-                <rect x="5" y="5" width="20" height="20" fill="currentColor" />
-                <rect x="9" y="9" width="12" height="12" fill="white" />
-                <rect x="75" y="5" width="20" height="20" fill="currentColor" />
-                <rect x="79" y="9" width="12" height="12" fill="white" />
-                <rect x="5" y="75" width="20" height="20" fill="currentColor" />
-                <rect x="9" y="79" width="12" height="12" fill="white" />
-
-                <rect x="35" y="15" width="10" height="10" fill="currentColor" />
-                <rect x="55" y="20" width="15" height="5" fill="currentColor" />
-                <rect x="40" y="35" width="25" height="10" fill="currentColor" />
-                <rect x="15" y="50" width="5" height="20" fill="currentColor" />
-                <rect x="35" y="55" width="10" height="15" fill="currentColor" />
-                <rect x="55" y="50" width="15" height="25" fill="currentColor" />
-                <rect x="75" y="60" width="20" height="5" fill="currentColor" />
-                <rect x="75" y="75" width="10" height="10" fill="currentColor" />
-                <rect x="10" y="60" width="5" height="5" fill="currentColor" />
-                <rect x="85" y="30" width="5" height="10" fill="currentColor" />
-              </svg>
+            {/* Real Scannable QR code */}
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-md flex flex-col items-center justify-center">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(currentBooking.bookingRef)}`}
+                alt={`QR Ticket ${currentBooking.bookingRef}`}
+                className="w-36 h-36 rounded-lg object-contain"
+              />
+              <span className="text-[11px] font-mono font-black text-slate-800 mt-2 uppercase tracking-wider">
+                {currentBooking.bookingRef}
+              </span>
             </div>
 
             <div className="text-center font-semibold">
