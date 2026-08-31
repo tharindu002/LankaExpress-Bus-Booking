@@ -4,10 +4,11 @@ node_modules/
 .pnpm-store/
 
 # Build outputs
-dist/
-**/dist/
+frontend/dist/
+Admin/dist/
 dist-admin/
 build/
+
 
 # Local Environment Variables
 .env
