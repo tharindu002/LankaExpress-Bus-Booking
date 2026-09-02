@@ -13,6 +13,12 @@ export const AuthProvider = ({ children }) => {
       const res = await api.getWallet();
       if (res && res.balance !== undefined) {
         setWalletBalance(res.balance);
+        setUser((prev) => {
+          if (!prev) return prev;
+          const updated = { ...prev, walletBalance: res.balance };
+          localStorage.setItem('bus_user', JSON.stringify(updated));
+          return updated;
+        });
       }
     } catch (e) {
       console.warn('Unable to fetch live wallet balance');
