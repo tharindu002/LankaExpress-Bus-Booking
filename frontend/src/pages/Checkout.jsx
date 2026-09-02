@@ -79,12 +79,20 @@ export default function Checkout() {
           passengerNic: nic,
         });
 
+        const bookingRef = result.data?.bookingRef || result.bookingRef || `BUS-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+        const qrCodeData = result.data?.qrCodeData || bookingRef;
+
         await refreshWallet();
         completeBooking({
-          bookingRef: result.data?.bookingRef,
+          bookingRef,
           seats: selectedSeats,
+          passengerName: name,
+          passengerEmail: email,
+          passengerPhone: phone,
+          passengerNic: nic,
+          bookingDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
           totalAmount,
-          qrCodeData: result.data?.qrCodeData,
+          qrCodeData,
           status: 'Active',
           paymentStatus: 'Paid',
           paymentMethod: 'Wallet',

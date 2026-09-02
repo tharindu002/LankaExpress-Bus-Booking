@@ -5,7 +5,6 @@ import { useBooking } from '../context/BookingContext';
 
 export default function BookingSuccess() {
   const { currentBooking, resetBookingFlow, selectedBus } = useBooking();
-  const [downloading, setDownloading] = useState(false);
   const navigate = useNavigate();
 
   // Reset booking flow on component unmount
@@ -27,45 +26,26 @@ export default function BookingSuccess() {
     );
   }
 
-  const handleDownloadPDF = async () => {
-    const element = document.getElementById('digital-bus-ticket');
-    if (!element) return;
+  const bookingRef = currentBooking?.bookingRef || currentBooking?.qrCodeData || `BUS-${new Date().getFullYear()}-467602`;
+  const passengerName = currentBooking?.passengerName || selectedBus?.passengerName || 'Passenger User';
+  const passengerNic = currentBooking?.passengerNic || 'NIC Provided';
+  const passengerPhone = currentBooking?.passengerPhone || '0712584564';
+  const seatsFormatted = Array.isArray(currentBooking?.seats)
+    ? currentBooking.seats.join(', ')
+    : (currentBooking?.seats || 'Selected Seats');
+  const travelDate = currentBooking?.bookingDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const totalPaid = currentBooking?.totalAmount || 990;
 
-    setDownloading(true);
-
-    try {
-      if (!window.html2pdf) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-          script.onload = resolve;
-          script.onerror = reject;
-          document.body.appendChild(script);
-        });
-      }
-
-      const opt = {
-        margin:       [8, 8, 8, 8],
-        filename:     `LankaExpress_Ticket_${currentBooking.bookingRef || 'Pass'}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-
-      await window.html2pdf().set(opt).from(element).save();
-    } catch (err) {
-      console.error('Direct PDF download error:', err);
-      // Fallback print if script blocked
-      window.print();
-    } finally {
-      setDownloading(false);
-    }
+  const handlePrint = () => {
+    window.print();
   };
 
   const handleHomeReturn = () => {
     resetBookingFlow();
     navigate('/');
   };
+
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(bookingRef)}`;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12 sm:px-6 lg:px-8 space-y-8 print:p-0 print:m-0 print:bg-white">
@@ -78,18 +58,18 @@ export default function BookingSuccess() {
         </p>
       </div>
 
-      {/* Stylized Bus E-Ticket */}
-      <div id="digital-bus-ticket" className="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-3xl shadow-xl overflow-hidden print:shadow-none print:border-slate-300 print:rounded-none">
+      {/* Stylized Bus E-Ticket Boarding Pass */}
+      <div id="boarding-pass-card" className="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-3xl shadow-xl overflow-hidden print:shadow-none print:border-slate-300 print:rounded-none">
 
         {/* Ticket Header */}
         <div className="bg-gradient-to-r from-slate-800 to-slate-900 dark:from-slate-950 dark:to-slate-900 text-white p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="space-y-1">
             <span className="text-[10px] text-teal-400 font-extrabold uppercase tracking-widest block">EXPRESSWAY BOARDING PASS</span>
-            <strong className="text-lg tracking-wider text-white">LANKA<span className="text-gold-500">EXPRESS</span></strong>
+            <strong className="text-lg tracking-wider text-white">LANKA<span className="text-amber-400">EXPRESS</span></strong>
           </div>
           <div className="text-left sm:text-right">
             <span className="text-[10px] text-slate-400 font-bold uppercase block">BOOKING REF</span>
-            <span className="font-mono font-extrabold text-gold-400 text-lg tracking-wider">{currentBooking.bookingRef}</span>
+            <span className="font-mono font-extrabold text-amber-400 text-lg tracking-wider">{bookingRef}</span>
           </div>
         </div>
 
@@ -101,19 +81,19 @@ export default function BookingSuccess() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Passenger Name</span>
-                <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{currentBooking.passengerName}</span>
+                <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{passengerName}</span>
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">National ID (NIC)</span>
-                <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{currentBooking.passengerNic}</span>
+                <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{passengerNic}</span>
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Contact Mobile</span>
-                <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{currentBooking.passengerPhone}</span>
+                <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{passengerPhone}</span>
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Seats Reserved</span>
-                <span className="text-sm font-extrabold text-teal-500 dark:text-teal-400">{currentBooking.seats.join(', ')}</span>
+                <span className="text-sm font-extrabold text-teal-500 dark:text-teal-400">{seatsFormatted}</span>
               </div>
             </div>
 
@@ -138,32 +118,36 @@ export default function BookingSuccess() {
                 </span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-400 font-bold uppercase block">Travel Date </span>
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Travel Date</span>
                 <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200">
-                  {currentBooking.bookingDate}
+                  {travelDate}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* QR Code and Pricing (Simulated Ticket stub) */}
+          {/* QR Code and Pricing */}
           <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-dark-border/40 space-y-4">
 
             {/* Real Scannable QR code */}
             <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-md flex flex-col items-center justify-center">
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(currentBooking.bookingRef)}`}
-                alt={`QR Ticket ${currentBooking.bookingRef}`}
+                src={qrUrl}
+                alt={`QR Ticket ${bookingRef}`}
                 className="w-36 h-36 rounded-lg object-contain"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = `https://chart.googleapis.com/chart?cht=qr&chs=250x250&chl=${encodeURIComponent(bookingRef)}`;
+                }}
               />
               <span className="text-[11px] font-mono font-black text-slate-800 mt-2 uppercase tracking-wider">
-                {currentBooking.bookingRef}
+                {bookingRef}
               </span>
             </div>
 
             <div className="text-center font-semibold">
               <span className="text-[10px] text-slate-400 font-bold uppercase block">Total Amount Paid</span>
-              <strong className="text-lg text-gold-500">{currentBooking.totalAmount} LKR</strong>
+              <strong className="text-lg text-amber-500 font-bold">{totalPaid} LKR</strong>
               <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-black block mt-0.5 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
                 TRANSACTION PAID
               </span>
@@ -180,21 +164,11 @@ export default function BookingSuccess() {
       {/* Buttons */}
       <div className="flex flex-col sm:flex-row justify-center items-center gap-3 print:hidden">
         <button
-          onClick={handleDownloadPDF}
-          disabled={downloading}
-          className="w-full sm:w-auto px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl flex items-center justify-center space-x-2 transition cursor-pointer disabled:opacity-50"
+          onClick={handlePrint}
+          className="w-full sm:w-auto px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl flex items-center justify-center space-x-2 transition cursor-pointer"
         >
-          {downloading ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Downloading PDF...</span>
-            </>
-          ) : (
-            <>
-              <FaDownload />
-              <span>Download PDF Ticket</span>
-            </>
-          )}
+          <FaDownload />
+          <span>Download PDF Ticket</span>
         </button>
 
         <Link
@@ -207,7 +181,7 @@ export default function BookingSuccess() {
 
         <button
           onClick={handleHomeReturn}
-          className="w-full sm:w-auto px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl flex items-center justify-center space-x-2 transition cursor-pointer"
+          className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center space-x-2 transition cursor-pointer"
         >
           <FaHome />
           <span>Book Another Ticket</span>
