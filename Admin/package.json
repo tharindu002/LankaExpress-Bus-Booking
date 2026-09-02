@@ -19,6 +19,8 @@
     "express": "^4.21.2",
     "html5-qrcode": "^2.3.8",
     "jsonwebtoken": "^9.0.2",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.475.0",
     "mongodb-memory-server": "^10.1.4",
     "mongoose": "^8.12.0",

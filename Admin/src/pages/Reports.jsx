@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { BarChart3, Download, Calendar, RefreshCw, DollarSign, Wallet, RotateCcw, Clock, Printer, TrendingUp, Bus, CreditCard, ShieldCheck } from 'lucide-react';
+import { BarChart3, Download, Calendar, RefreshCw, DollarSign, Wallet, RotateCcw, Clock, Printer, TrendingUp, Bus, CreditCard, ShieldCheck, FileText } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export const Reports = () => {
   const [selectedMonth, setSelectedMonth] = useState('2026-08');
@@ -32,6 +34,178 @@ export const Reports = () => {
 
   const handlePrintReport = () => {
     window.print();
+  };
+
+  const exportReportPDF = () => {
+    if (!reportData) return;
+    const summary = reportData.summary || {};
+    const routes = reportData.routeBreakdown || [];
+    const paymentMethods = reportData.paymentMethodBreakdown || {};
+
+    const doc = new jsPDF();
+
+    const primaryColor = [15, 23, 42]; // Dark slate Navy #0f172a
+    const emeraldColor = [16, 185, 129]; // Emerald #10b981
+    const textColor = [30, 41, 59]; // Slate 800
+
+    // Header Banner Background
+    doc.setFillColor(...primaryColor);
+    doc.rect(0, 0, 210, 38, 'F');
+
+    // Header Text
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.text('LANKA EXPRESSWAY BUS BOOKING SYSTEM', 14, 16);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(209, 213, 219);
+    doc.text('OFFICIAL MONTHLY REVENUE & FINANCIAL STATEMENT', 14, 24);
+
+    doc.setFontSize(8.5);
+    doc.text(`Period: ${selectedMonth || `${startDate} to ${endDate}`}`, 14, 32);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 125, 32);
+
+    let startY = 46;
+
+    // 1. Executive Summary Table
+    doc.setTextColor(...primaryColor);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('1. Executive Financial Summary', 14, startY);
+
+    startY += 4;
+
+    const summaryData = [
+      ['Total Ticket Revenue', `LKR ${(summary.totalTicketRevenue || 0).toLocaleString()}`],
+      ['Wallet Top-Up Deposits', `LKR ${(summary.totalWalletTopUps || 0).toLocaleString()}`],
+      ['Refunds & Cancellations', `LKR ${(summary.totalRefunds || 0).toLocaleString()}`],
+      ['Net Total System Income', `LKR ${(summary.netRevenue || 0).toLocaleString()}`],
+    ];
+
+    autoTable(doc, {
+      startY: startY,
+      head: [['Financial Metric Description', 'Amount (LKR)']],
+      body: summaryData,
+      theme: 'grid',
+      headStyles: {
+        fillColor: primaryColor,
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 9.5,
+      },
+      bodyStyles: {
+        fontSize: 9,
+        textColor: textColor,
+      },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 120 },
+        1: { halign: 'right', fontStyle: 'bold', textColor: [16, 185, 129] },
+      },
+      styles: { cellPadding: 3 },
+    });
+
+    startY = doc.lastAutoTable.finalY + 10;
+
+    // 2. Expressway Route Revenue Breakdown
+    doc.setTextColor(...primaryColor);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('2. Expressway Route Revenue Breakdown', 14, startY);
+
+    startY += 4;
+
+    const routeTableHead = ['Route Name', 'Reservations', 'Passengers', 'Revenue (LKR)', 'Share (%)'];
+    const routeTableBody = routes.map((r) => {
+      const share = summary.totalTicketRevenue ? Math.round((r.revenue / summary.totalTicketRevenue) * 100) : 0;
+      return [
+        r.routeName,
+        `${r.bookingsCount} Bookings`,
+        `${r.passengersCount} Seats`,
+        `LKR ${r.revenue.toLocaleString()}`,
+        `${share}%`,
+      ];
+    });
+
+    if (routeTableBody.length === 0) {
+      routeTableBody.push(['No route revenue data recorded for this period', '-', '-', 'LKR 0', '0%']);
+    }
+
+    autoTable(doc, {
+      startY: startY,
+      head: [routeTableHead],
+      body: routeTableBody,
+      theme: 'striped',
+      headStyles: {
+        fillColor: emeraldColor,
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 9.5,
+      },
+      bodyStyles: {
+        fontSize: 8.5,
+        textColor: textColor,
+      },
+      columnStyles: {
+        0: { cellWidth: 70, fontStyle: 'bold' },
+        1: { halign: 'center' },
+        2: { halign: 'center' },
+        3: { halign: 'right', fontStyle: 'bold' },
+        4: { halign: 'center' },
+      },
+      styles: { cellPadding: 3 },
+    });
+
+    startY = doc.lastAutoTable.finalY + 10;
+
+    // 3. Payment Method Breakdown
+    doc.setTextColor(...primaryColor);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('3. Payment Channel Breakdown', 14, startY);
+
+    startY += 4;
+
+    const paymentTableData = [
+      ['Digital Wallet Payments', `LKR ${(paymentMethods.Wallet || 0).toLocaleString()}`],
+      ['PayHere Credit/Debit Card', `LKR ${(paymentMethods.Card || paymentMethods.Online || 0).toLocaleString()}`],
+      ['LankaQR Payments', `LKR ${(paymentMethods.LankaQR || 0).toLocaleString()}`],
+    ];
+
+    autoTable(doc, {
+      startY: startY,
+      head: [['Payment Channel', 'Total Revenue Collected (LKR)']],
+      body: paymentTableData,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [79, 70, 229], // Indigo
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 9.5,
+      },
+      bodyStyles: {
+        fontSize: 8.5,
+        textColor: textColor,
+      },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 120 },
+        1: { halign: 'right', fontStyle: 'bold' },
+      },
+      styles: { cellPadding: 3 },
+    });
+
+    // Footer on all pages
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(156, 163, 175);
+      doc.text('Lanka Expressway Bus Booking System — Official Financial Statement', 14, 287);
+      doc.text(`Page ${i} of ${pageCount}`, 180, 287);
+    }
+
+    doc.save(`lanka_expressway_financial_report_${selectedMonth || 'custom'}.pdf`);
   };
 
   const exportReportCSV = () => {
@@ -111,8 +285,11 @@ export const Reports = () => {
           <button onClick={handlePrintReport} className="btn btn-secondary text-xs bg-slate-800 text-slate-200 border-slate-700">
             <Printer className="w-3.5 h-3.5 text-blue-400" /> Print Statement
           </button>
+          <button onClick={exportReportPDF} className="btn btn-primary text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-md shadow-emerald-950/40">
+            <FileText className="w-4 h-4 text-white" /> Download PDF
+          </button>
           <button onClick={exportReportCSV} className="btn btn-secondary text-xs">
-            <Download className="w-3.5 h-3.5 text-emerald-400" /> Export CSV
+            <Download className="w-3.5 h-3.5 text-slate-400" /> CSV
           </button>
         </div>
       </div>
