@@ -23,12 +23,38 @@ export default function Register() {
     });
   };
 
+  const isValidEmail = (str) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(str.trim());
+  };
+
+  const isValidPhone = (str) => {
+    const cleanPhone = str.replace(/[\s\-\(\)]/g, '');
+    const phoneRegex = /^(?:\+94|0)?7[0-8]\d{7}$/;
+    return phoneRegex.test(cleanPhone);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const { name, email, phone, password, confirmPassword } = formData;
 
     if (!name || !email || !phone || !password || !confirmPassword) {
-      setError('Please fill in all fields.');
+      setError('Please fill in all required fields.');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid email address (e.g. name@example.com).');
+      return;
+    }
+
+    if (!isValidPhone(phone)) {
+      setError('Please enter a valid Sri Lankan mobile phone number (e.g. 0771234567 or +94 77 123 4567).');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
       return;
     }
 
@@ -41,10 +67,10 @@ export default function Register() {
     setLoading(true);
 
     try {
-      await register({ name, email, phone, password });
+      await register({ name, email: email.trim(), phone: phone.trim(), password });
       navigate('/');
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      setError(err.message || 'Registration failed. Please check your information and try again.');
     } finally {
       setLoading(false);
     }

@@ -1586,6 +1586,30 @@ export const api = {
     }
   },
 
+  forgotPassword: async (email) => {
+    try {
+      const res = await client.post('/auth/forgot-password', { email });
+      return res.data;
+    } catch (err) {
+      if (err.response && err.response.data && err.response.data.error) {
+        throw new Error(err.response.data.error);
+      }
+      throw new Error('Unable to initiate password reset. Please try again.');
+    }
+  },
+
+  resetPassword: async (email, otp, newPassword) => {
+    try {
+      const res = await client.post('/auth/reset-password', { email, otp, newPassword });
+      return res.data;
+    } catch (err) {
+      if (err.response && err.response.data && err.response.data.error) {
+        throw new Error(err.response.data.error);
+      }
+      throw new Error('Password reset failed. Please check your reset code and try again.');
+    }
+  },
+
   // --- DIGITAL WALLET & PAYHERE ---
   getWallet: async () => {
     try {
