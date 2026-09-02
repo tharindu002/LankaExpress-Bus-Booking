@@ -5,6 +5,7 @@ import { useBooking } from '../context/BookingContext';
 
 export default function BookingSuccess() {
   const { currentBooking, resetBookingFlow, selectedBus } = useBooking();
+  const [downloading, setDownloading] = useState(false);
   const navigate = useNavigate();
 
   // Reset booking flow on component unmount
@@ -26,8 +27,39 @@ export default function BookingSuccess() {
     );
   }
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById('digital-bus-ticket');
+    if (!element) return;
+
+    setDownloading(true);
+
+    try {
+      if (!window.html2pdf) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
+      }
+
+      const opt = {
+        margin:       [8, 8, 8, 8],
+        filename:     `LankaExpress_Ticket_${currentBooking.bookingRef || 'Pass'}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      await window.html2pdf().set(opt).from(element).save();
+    } catch (err) {
+      console.error('Direct PDF download error:', err);
+      // Fallback print if script blocked
+      window.print();
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleHomeReturn = () => {
@@ -47,7 +79,7 @@ export default function BookingSuccess() {
       </div>
 
       {/* Stylized Bus E-Ticket */}
-      <div className="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-3xl shadow-xl overflow-hidden print:shadow-none print:border-slate-300 print:rounded-none">
+      <div id="digital-bus-ticket" className="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-3xl shadow-xl overflow-hidden print:shadow-none print:border-slate-300 print:rounded-none">
 
         {/* Ticket Header */}
         <div className="bg-gradient-to-r from-slate-800 to-slate-900 dark:from-slate-950 dark:to-slate-900 text-white p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -148,11 +180,21 @@ export default function BookingSuccess() {
       {/* Buttons */}
       <div className="flex flex-col sm:flex-row justify-center items-center gap-3 print:hidden">
         <button
-          onClick={handlePrint}
-          className="w-full sm:w-auto px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl flex items-center justify-center space-x-2 transition cursor-pointer"
+          onClick={handleDownloadPDF}
+          disabled={downloading}
+          className="w-full sm:w-auto px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl flex items-center justify-center space-x-2 transition cursor-pointer disabled:opacity-50"
         >
-          <FaDownload />
-          <span>Download PDF Ticket</span>
+          {downloading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>Downloading PDF...</span>
+            </>
+          ) : (
+            <>
+              <FaDownload />
+              <span>Download PDF Ticket</span>
+            </>
+          )}
         </button>
 
         <Link
