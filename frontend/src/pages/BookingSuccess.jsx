@@ -36,8 +36,49 @@ export default function BookingSuccess() {
   const travelDate = currentBooking?.bookingDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const totalPaid = currentBooking?.totalAmount || 990;
 
-  const handlePrint = () => {
-    window.print();
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadPDF = () => {
+    const element = document.getElementById('boarding-pass-card');
+    if (!element) return;
+
+    setDownloading(true);
+
+    const triggerDownload = (html2pdfObj) => {
+      const opt = {
+        margin:       [8, 8, 8, 8],
+        filename:     `Ticket-${bookingRef}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdfObj().set(opt).from(element).save().then(() => {
+        setDownloading(false);
+      }).catch(() => {
+        setDownloading(false);
+        window.print();
+      });
+    };
+
+    if (window.html2pdf) {
+      triggerDownload(window.html2pdf);
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      script.onload = () => {
+        if (window.html2pdf) {
+          triggerDownload(window.html2pdf);
+        } else {
+          setDownloading(false);
+          window.print();
+        }
+      };
+      script.onerror = () => {
+        setDownloading(false);
+        window.print();
+      };
+      document.body.appendChild(script);
+    }
   };
 
   const handleHomeReturn = () => {
@@ -164,11 +205,16 @@ export default function BookingSuccess() {
       {/* Buttons */}
       <div className="flex flex-col sm:flex-row justify-center items-center gap-3 print:hidden">
         <button
-          onClick={handlePrint}
-          className="w-full sm:w-auto px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl flex items-center justify-center space-x-2 transition cursor-pointer"
+          onClick={handleDownloadPDF}
+          disabled={downloading}
+          className="w-full sm:w-auto px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl flex items-center justify-center space-x-2 transition cursor-pointer disabled:opacity-50"
         >
-          <FaDownload />
-          <span>Download PDF Ticket</span>
+          {downloading ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <FaDownload />
+          )}
+          <span>{downloading ? 'Downloading PDF...' : 'Download PDF Ticket'}</span>
         </button>
 
         <Link
