@@ -25,6 +25,14 @@ export default function Checkout() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const fare = selectedBus?.fare || 0;
+  const route = selectedBus?.route;
+  const tollFee = route?.tollFee || 0;
+  const basePrice = (selectedSeats?.length || 0) * fare;
+  const bookingFee = 150;
+  const totalAmount = basePrice + tollFee + bookingFee;
+  const currentWalletBal = walletBalance !== undefined ? walletBalance : user?.walletBalance || 0;
+
   useEffect(() => {
     refreshWallet();
   }, []);
@@ -46,13 +54,6 @@ export default function Checkout() {
       </div>
     );
   }
-
-  const { fare, route } = selectedBus;
-  const tollFee = route?.tollFee || 0;
-  const basePrice = selectedSeats.length * fare;
-  const bookingFee = 150;
-  const totalAmount = basePrice + tollFee + bookingFee;
-  const currentWalletBal = walletBalance !== undefined ? walletBalance : user?.walletBalance || 0;
 
   const handlePay = async (e) => {
     e.preventDefault();

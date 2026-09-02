@@ -6,6 +6,7 @@ import { useBooking } from '../context/BookingContext';
 export default function BookingSuccess() {
   const { currentBooking, resetBookingFlow, selectedBus } = useBooking();
   const navigate = useNavigate();
+  const [downloading, setDownloading] = useState(false);
 
   // Reset booking flow on component unmount
   useEffect(() => {
@@ -35,8 +36,6 @@ export default function BookingSuccess() {
     : (currentBooking?.seats || 'Selected Seats');
   const travelDate = currentBooking?.bookingDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const totalPaid = currentBooking?.totalAmount || 990;
-
-  const [downloading, setDownloading] = useState(false);
 
   const handleDownloadPDF = () => {
     const element = document.getElementById('boarding-pass-card');
