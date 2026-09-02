@@ -1634,8 +1634,9 @@ export const api = {
       const res = await client.post('/wallet/topup', { amount });
       return res.data;
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.message) {
-        throw new Error(err.response.data.message);
+      if (err.response && err.response.data) {
+        const errorText = err.response.data.error || err.response.data.message;
+        if (errorText) throw new Error(errorText);
       }
       throw new Error('Failed to initialize wallet top-up');
     }
@@ -1646,8 +1647,9 @@ export const api = {
       const res = await client.post('/wallet/pay-ticket', bookingData);
       return res.data;
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.message) {
-        throw new Error(err.response.data.message);
+      if (err.response && err.response.data) {
+        const errorText = err.response.data.error || err.response.data.message;
+        if (errorText) throw new Error(errorText);
       }
       throw new Error('Wallet payment failed');
     }
@@ -1658,8 +1660,9 @@ export const api = {
       const res = await client.post('/wallet/verify-sandbox', { orderId });
       return res.data;
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.message) {
-        throw new Error(err.response.data.message);
+      if (err.response && err.response.data) {
+        const errorText = err.response.data.error || err.response.data.message;
+        if (errorText) throw new Error(errorText);
       }
       throw new Error('Sandbox verification failed');
     }
