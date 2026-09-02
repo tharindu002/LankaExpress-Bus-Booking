@@ -1,11 +1,29 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaArrowLeft, FaInfoCircle, FaCrown, FaUserTie, FaDoorOpen } from 'react-icons/fa';
 import { useBooking } from '../context/BookingContext';
+import { api } from '../services/api';
 
 export default function SeatSelection() {
-  const { selectedBus, selectedSeats, toggleSeat, clearSelectedSeats } = useBooking();
+  const { selectedBus, selectBus, selectedSeats, toggleSeat, clearSelectedSeats } = useBooking();
   const navigate = useNavigate();
+
+  const schedId = selectedBus?.id || selectedBus?._id;
+
+  useEffect(() => {
+    if (schedId) {
+      api.getScheduleById(schedId)
+        .then((freshData) => {
+          if (freshData && Array.isArray(freshData.reservedSeats)) {
+            selectBus({
+              ...selectedBus,
+              reservedSeats: freshData.reservedSeats,
+            });
+          }
+        })
+        .catch((err) => console.error('Error fetching live reserved seats:', err));
+    }
+  }, [schedId]);
 
   if (!selectedBus) {
     return (
@@ -34,8 +52,14 @@ export default function SeatSelection() {
   const leftColumns = is2Plus1 ? ['A'] : ['A', 'B'];
   const rightColumns = is2Plus1 ? ['B', 'C'] : ['C', 'D'];
 
+  const checkIsReserved = (seatId) => {
+    return (reservedSeats || []).some(
+      (s) => String(s).trim().toUpperCase() === String(seatId).trim().toUpperCase()
+    );
+  };
+
   const handleSeatClick = (seatId) => {
-    if (reservedSeats.includes(seatId)) return;
+    if (checkIsReserved(seatId)) return;
     toggleSeat(seatId);
   };
 
@@ -131,7 +155,7 @@ export default function SeatSelection() {
                   {/* Left Column Seats */}
                   {leftColumns.map((col) => {
                     const seatId = `${col}${rowNo}`;
-                    const isReserved = reservedSeats.includes(seatId);
+                    const isReserved = checkIsReserved(seatId);
                     const isSelected = selectedSeats.includes(seatId);
 
                     return (
@@ -169,7 +193,7 @@ export default function SeatSelection() {
                   {/* Right Column Seats */}
                   {rightColumns.map((col) => {
                     const seatId = `${col}${rowNo}`;
-                    const isReserved = reservedSeats.includes(seatId);
+                    const isReserved = checkIsReserved(seatId);
                     const isSelected = selectedSeats.includes(seatId);
 
                     return (
