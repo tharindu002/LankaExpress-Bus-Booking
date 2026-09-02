@@ -29,6 +29,12 @@ export default function Checkout() {
     refreshWallet();
   }, []);
 
+  useEffect(() => {
+    if (paymentMethod === 'InAppWallet' && currentWalletBal >= totalAmount) {
+      setError('');
+    }
+  }, [totalAmount, currentWalletBal, paymentMethod]);
+
   if (!selectedBus || selectedSeats.length === 0) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4 text-center px-4">
