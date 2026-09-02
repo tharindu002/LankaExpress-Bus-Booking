@@ -1631,14 +1631,24 @@ export const api = {
 
   topupWallet: async (amount) => {
     try {
-      const res = await client.post('/wallet/topup', { amount });
+      let userId;
+      try {
+        const stored = localStorage.getItem('bus_user');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          userId = parsed.userId || parsed.id || parsed._id;
+        }
+      } catch (e) {}
+
+      const res = await client.post('/wallet/topup', { amount, userId });
       return res.data;
     } catch (err) {
+      console.error('topupWallet API error:', err);
       if (err.response && err.response.data) {
         const errorText = err.response.data.error || err.response.data.message;
         if (errorText) throw new Error(errorText);
       }
-      throw new Error('Failed to initialize wallet top-up');
+      throw new Error(err.message || 'Failed to initialize wallet top-up');
     }
   },
 

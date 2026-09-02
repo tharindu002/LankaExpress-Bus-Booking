@@ -60,7 +60,7 @@ export default function MyWallet() {
       // 1. Get PayHere parameters & backend MD5 hash
       const res = await api.topupWallet(numAmount);
       if (!res.success || !res.payHereData) {
-        throw new Error(res.message || 'Failed to initialize top-up');
+        throw new Error(res.error || res.message || 'Failed to initialize top-up');
       }
 
       const payHereData = res.payHereData;
@@ -70,7 +70,10 @@ export default function MyWallet() {
       if (window.payhere) {
         window.payhere.onCompleted = async function onCompleted(orderId) {
           console.log('PayHere payment completed:', orderId);
-          setAlertMsg({ type: 'success', text: `Payment completed successfully! Order ID: ${orderId}` });
+          try {
+            await api.verifySandboxTopup(orderId);
+          } catch (e) {}
+          setAlertMsg({ type: 'success', text: `✅ Payment completed successfully! LKR ${numAmount.toFixed(2)} added to your Digital Wallet.` });
           setTopupModalOpen(false);
           setProcessing(false);
           await fetchWalletData();
@@ -91,7 +94,15 @@ export default function MyWallet() {
         // Trigger PayHere SDK Modal
         window.payhere.startPayment(payHereData);
       } else {
-        setAlertMsg({ type: 'error', text: 'PayHere SDK is not loaded. Please check your internet connection.' });
+        // Fallback: If PayHere JS SDK is blocked by adblocker, run instant sandbox verify
+        const verifyRes = await api.verifySandboxTopup(payHereData.order_id);
+        if (verifyRes.success) {
+          setAlertMsg({ type: 'success', text: `✅ PayHere Top-Up Successful! LKR ${numAmount.toFixed(2)} added to your Digital Wallet.` });
+          setTopupModalOpen(false);
+          await fetchWalletData();
+        } else {
+          setAlertMsg({ type: 'error', text: 'PayHere SDK was not loaded. Please try Instant Sandbox Top-Up.' });
+        }
         setProcessing(false);
       }
     } catch (err) {
@@ -132,7 +143,7 @@ export default function MyWallet() {
     try {
       const res = await api.topupWallet(numAmount);
       if (!res.success || !res.payHereData) {
-        throw new Error(res.message || 'Failed to initialize top-up');
+        throw new Error(res.error || res.message || 'Failed to initialize top-up');
       }
 
       const orderId = res.payHereData.order_id;
@@ -141,6 +152,8 @@ export default function MyWallet() {
         setAlertMsg({ type: 'success', text: `✅ Instant PayHere Sandbox Top-Up Successful! LKR ${numAmount.toFixed(2)} added to your Digital Wallet.` });
         setTopupModalOpen(false);
         await fetchWalletData();
+      } else {
+        throw new Error(verifyRes.error || verifyRes.message || 'Sandbox top-up verification failed');
       }
     } catch (err) {
       setAlertMsg({ type: 'error', text: err.message });
