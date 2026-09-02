@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Search, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export const DataTable = ({
   columns,
@@ -7,7 +9,7 @@ export const DataTable = ({
   searchPlaceholder = 'Search records...',
   filterOptions = [],
   onFilterChange,
-  filename = 'report.csv',
+  filename = 'report.pdf',
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -26,29 +28,77 @@ export const DataTable = ({
   const totalPages = Math.ceil(filteredData.length / pageSize) || 1;
   const paginatedData = filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  // CSV Export handler
-  const exportToCSV = () => {
+  // PDF Export handler
+  const exportToPDF = () => {
     if (!data || data.length === 0) return;
 
-    const headers = columns.map((c) => c.header).join(',');
-    const rows = filteredData.map((row) =>
-      columns
-        .map((c) => {
-          let val = c.accessor ? row[c.accessor] : c.getValue ? c.getValue(row) : '';
-          if (typeof val === 'object' && val !== null) val = JSON.stringify(val);
-          return `"${String(val || '').replace(/"/g, '""')}"`;
-        })
-        .join(',')
+    // Exclude 'Action' / 'Actions' columns from PDF export
+    const exportableColumns = columns.filter(
+      (c) => c.header && !['action', 'actions'].includes(String(c.header).toLowerCase())
     );
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers, ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const headers = exportableColumns.map((c) => String(c.header));
+    const rows = filteredData.map((row) =>
+      exportableColumns.map((c) => {
+        let val = c.accessor ? row[c.accessor] : c.getValue ? c.getValue(row) : '';
+        if (typeof val === 'object' && val !== null) {
+          val = row[c.accessor] !== undefined ? row[c.accessor] : '';
+        }
+        return String(val ?? '');
+      })
+    );
+
+    const doc = new jsPDF();
+    const primaryColor = [15, 23, 42]; // Slate navy #0f172a
+    const emeraldColor = [16, 185, 129]; // Emerald green #10b981
+
+    // Header Banner
+    doc.setFillColor(...primaryColor);
+    doc.rect(0, 0, 210, 32, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.text('LANKA EXPRESSWAY BUS BOOKING SYSTEM', 14, 14);
+
+    const cleanTitle = filename.replace(/\.(csv|pdf)$/i, '').replace(/_/g, ' ').toUpperCase();
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(209, 213, 219);
+    doc.text(`Official Data Export — ${cleanTitle}`, 14, 22);
+
+    doc.setFontSize(8);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 125, 22);
+
+    autoTable(doc, {
+      startY: 38,
+      head: [headers],
+      body: rows,
+      theme: 'striped',
+      headStyles: {
+        fillColor: emeraldColor,
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 9,
+      },
+      bodyStyles: {
+        fontSize: 8,
+        textColor: [30, 41, 59],
+      },
+      styles: { cellPadding: 2.5 },
+    });
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(156, 163, 175);
+      doc.text('Lanka Expressway Bus Booking System — Official Export Document', 14, 287);
+      doc.text(`Page ${i} of ${pageCount}`, 180, 287);
+    }
+
+    const saveName = filename.endsWith('.pdf') ? filename : filename.replace(/\.csv$/i, '.pdf');
+    doc.save(saveName);
   };
 
   return (
@@ -85,9 +135,9 @@ export const DataTable = ({
             </select>
           ))}
 
-          <button onClick={exportToCSV} className="btn btn-secondary text-xs py-2.5 px-4 shadow-sm">
-            <Download className="w-4 h-4 text-emerald-400" />
-            <span>Export CSV</span>
+          <button onClick={exportToPDF} className="btn btn-secondary text-xs py-2.5 px-4 shadow-sm bg-slate-900 border-slate-700 hover:border-emerald-500 text-slate-200">
+            <FileText className="w-4 h-4 text-emerald-400" />
+            <span>Export PDF</span>
           </button>
         </div>
       </div>

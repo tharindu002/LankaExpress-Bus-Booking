@@ -168,7 +168,7 @@ export const UserManagement = () => {
             columns={columns}
             data={users}
             searchPlaceholder="Search by name, email, phone, user ID..."
-            filename="lankaexpressway_users.csv"
+            filename="lankaexpressway_users.pdf"
           />
         )}
       </div>
