@@ -25,19 +25,25 @@ export default function UserDashboard() {
   const [selectedBookingRef, setSelectedBookingRef] = useState('');
   const [cancelLoading, setCancelLoading] = useState(false);
 
+  const userId = user?.id || user?.userId;
+
   useEffect(() => {
     if (!user) {
       navigate('/login');
       return;
     }
-    fetchBookings();
+    fetchBookings(true);
     refreshWallet();
-  }, [user]);
+  }, [userId]);
 
-  const fetchBookings = async () => {
-    setLoading(true);
+  const fetchBookings = async (forceSpinner = false) => {
+    if (forceSpinner || userBookings.length === 0) {
+      setLoading(true);
+    }
     try {
-      const data = await api.getUserBookings(user.id || user.userId);
+      const uId = user?.id || user?.userId;
+      if (!uId) return;
+      const data = await api.getUserBookings(uId);
       setUserBookings(data);
     } catch (err) {
       console.error(err);
